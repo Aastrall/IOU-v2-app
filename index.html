@@ -2,8 +2,8 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>IOU | FINAL TEST</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>IOU | Finance Assistance</title>
     
     <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-auth-compat.js"></script>
@@ -11,6 +11,7 @@
     <script src="https://cdn.tailwindcss.com"></script>
     
     <script>
+        // Using your verified new project credentials
         const firebaseConfig = {
             apiKey: "AIzaSyAfWESSB4rsn29ID7gZmSTMC-xL_6M2RBo",
             authDomain: "iou-v2-app-b0278.firebaseapp.com",
@@ -20,35 +21,97 @@
             messagingSenderId: "205375489745",
             appId: "1:205375489745:web:99941b3d3fe3316ff027f0"
         };
+        
         firebase.initializeApp(firebaseConfig);
         const auth = firebase.auth();
         const db = firebase.database();
     </script>
 
     <style>
-        body { background-color: #000; color: #00FF41; font-family: sans-serif; overflow-x: hidden; }
-        .neon-text { text-shadow: 0 0 15px #00FF41; }
-        .input-style { background: #111; border: 2px solid #00FF41; color: white; padding: 15px; border-radius: 12px; width: 100%; margin-bottom: 15px; font-size: 16px; }
-        .btn-main { background: #00FF41; color: black; font-weight: 900; padding: 18px; border-radius: 12px; width: 100%; transition: 0.3s; cursor: pointer; border: none; }
-        .btn-main:active { transform: scale(0.95); }
-        .btn-outline { background: transparent; border: 2px solid #00FF41; color: #00FF41; font-weight: 900; padding: 15px; border-radius: 12px; width: 100%; cursor: pointer; }
+        :root { --neon: #00FF41; --bg: #000000; }
+        body { background-color: var(--bg); color: var(--neon); font-family: sans-serif; margin: 0; overflow: hidden; }
+        .neon-logo { font-size: 5rem; font-weight: 900; font-style: italic; text-shadow: 0 0 20px var(--neon); text-align: center; line-height: 1; }
+        .glass { background: rgba(0, 255, 65, 0.05); border: 2px solid var(--neon); border-radius: 2rem; }
+        .btn-green { background: var(--neon); color: #000; font-weight: 900; text-transform: uppercase; width: 100%; padding: 1.25rem; border-radius: 1rem; box-shadow: 0 0 15px var(--neon); margin-bottom: 1rem; cursor: pointer; border: none; }
+        .btn-outline { background: transparent; border: 2px solid var(--neon); color: var(--neon); font-weight: 900; text-transform: uppercase; width: 100%; padding: 1.25rem; border-radius: 1rem; cursor: pointer; }
+        input { background: #000 !important; border: 1px solid var(--neon) !important; color: #fff !important; padding: 1rem !important; border-radius: 1rem; width: 100%; margin-bottom: 1rem; outline: none; font-size: 16px; }
     </style>
 </head>
-<body class="flex items-center justify-center min-h-screen p-4">
+<body>
 
-    <div id="authSection" class="w-full max-w-sm border-2 border-[#00FF41] p-8 rounded-3xl bg-black shadow-[0_0_30px_rgba(0,255,65,0.2)]">
-        <h1 class="text-6xl font-black italic text-center mb-2 neon-text">IOU</h1>
-        <p class="text-center text-[10px] tracking-[0.4em] mb-10 opacity-70">SYSTEM ACCESS</p>
-        
-        <input type="text" id="userBox" placeholder="USERNAME" class="input-style">
-        <input type="password" id="passBox" placeholder="PASSWORD" class="input-style">
-        
-        <div class="space-y-4 mt-4">
-            <button onclick="runAuth(false)" class="btn-main uppercase">Connect</button>
-            <button onclick="runAuth(true)" class="btn-outline uppercase">Enroll New Account</button>
+    <div id="authSection" class="fixed inset-0 bg-black flex items-center justify-center p-6">
+        <div class="w-full max-w-md">
+            <div class="neon-logo mb-2">IOU</div>
+            <p class="text-center font-bold tracking-[0.3em] mb-8 text-xs text-[#00FF41]">FINANCE ASSISTANCE</p>
+            <div class="glass p-8">
+                <input type="text" id="email" placeholder="ANY NAME">
+                <input type="password" id="pass" placeholder="PASSWORD">
+                
+                <button onclick="handleAuth(false)" class="btn-green">Connect</button>
+                <button onclick="handleAuth(true)" class="btn-outline">Enroll New Account</button>
+            </div>
         </div>
     </div>
 
-    <div id="mainApp" class="hidden fixed inset-0 bg-black flex flex-col items-center justify-center">
-        <p class="uppercase text-xs tracking-widest opacity-40 mb-2">Available Balance</p>
-        <h2 id="balance" class="text-
+    <div id="mainApp" class="hidden h-screen flex flex-col">
+        <header class="p-6 border-b border-[#00FF41]/20 flex justify-between items-center">
+            <span class="font-black text-xs tracking-widest uppercase" id="userDisplay">USER</span>
+            <button onclick="auth.signOut().then(()=>location.reload())" class="text-[9px] border border-[#00FF41] px-4 py-2 rounded-full">EXIT</button>
+        </header>
+        <main class="flex-1 flex items-center justify-center p-6">
+            <div class="glass p-12 w-full max-w-sm text-center">
+                <p class="text-[10px] uppercase opacity-50 mb-2">Credit Balance</p>
+                <h2 id="balText" class="text-7xl font-black mb-8">$0.00</h2>
+                <button onclick="addFunds()" class="btn-green">Deposit $50</button>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        async function handleAuth(isEnroll) {
+            const rawName = document.getElementById('email').value.trim();
+            const pass = document.getElementById('pass').value;
+            
+            if(!rawName || !pass) {
+                alert("Please enter both name and password.");
+                return;
+            }
+
+            const email = rawName.includes('@') ? rawName : `${rawName}@iou.com`;
+
+            try {
+                if(isEnroll) {
+                    await auth.createUserWithEmailAndPassword(email, pass);
+                    alert("Account Created! You are being logged in.");
+                } else {
+                    await auth.signInWithEmailAndPassword(email, pass);
+                }
+            } catch (err) {
+                alert("Error: " + err.message);
+            }
+        }
+
+        function launch(user) {
+            document.getElementById('authSection').style.display = 'none';
+            document.getElementById('mainApp').classList.remove('hidden');
+            document.getElementById('userDisplay').innerText = user.email.split('@')[0];
+            
+            db.ref('data/' + user.uid).on('value', (s) => {
+                const val = s.val() ? s.val().balance : 0;
+                document.getElementById('balText').innerText = `$${val.toFixed(2)}`;
+            });
+        }
+
+        function addFunds() {
+            const user = auth.currentUser;
+            const ref = db.ref('data/' + user.uid);
+            ref.once('value').then(s => {
+                const current = s.val() ? s.val().balance : 0;
+                ref.update({ balance: current + 50 });
+            });
+        }
+
+        auth.onAuthStateChanged(u => { if(u) launch(u); });
+    </script>
+</body>
+</html>
